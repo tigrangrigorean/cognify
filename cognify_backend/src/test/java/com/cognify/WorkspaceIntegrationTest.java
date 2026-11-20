@@ -105,8 +105,11 @@ class WorkspaceIntegrationTest {
         .andExpect(status().isOk());
     mvc.perform(post("/api/auth/refresh").contentType("application/json").content(latest))
         .andExpect(status().isUnauthorized());
-    mvc.perform(delete("/api/documents/" + id).header("Authorization", bearer))
-        .andExpect(status().isOk());
+    mvc.perform(get("/api/me").header("Authorization", bearer))
+        .andExpect(status().isUnauthorized());
+    mvc.perform(
+            get("/api/me").header("Authorization", "Bearer " + rotated.get("accessToken").asText()))
+        .andExpect(status().isUnauthorized());
   }
 
   @Test

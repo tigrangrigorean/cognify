@@ -11,4 +11,9 @@ public interface RefreshSessionRepository extends JpaRepository<RefreshSession, 
   Optional<RefreshSession> lockToken(@Param("hash") String hash);
 
   List<RefreshSession> findByOwnerId(UUID ownerId);
+
+  Optional<RefreshSession> findByTokenHash(String hash);
+
+  @Query("select t.ownerId from RefreshSession t where t.tokenHash=:hash")
+  Optional<UUID> findOwnerByTokenHash(@Param("hash") String hash);
 }

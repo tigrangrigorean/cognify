@@ -15,6 +15,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { api, setToken, resumeSession } from "../services/api";
+import AccountSettings from "../components/AccountSettings";
 const kinds = {
   COURSEWORK: "Կուրսային աշխատանք",
   THESIS: "Դիպլոմային աշխատանք",
@@ -209,6 +210,16 @@ export default function Home() {
               <Coins size={18} />
               Դրամապանակ
             </button>
+            <button
+              className={screen === "settings" ? "selected" : "plain"}
+              onClick={() => {
+                setScreen("settings");
+                setEdit(null);
+              }}
+            >
+              <ShieldCheck size={18} />
+              Անվտանգություն
+            </button>
             <div className="aside-bottom">
               <ShieldCheck size={24} />
               <p>Ձեր փաստաթղթերը հասանելի են միայն ձեզ։</p>
@@ -271,6 +282,8 @@ export default function Home() {
                 </label>
                 <small>Ձեռքով խմբագրում • AI գեներացիան դեռ հասանելի չէ</small>
               </section>
+            ) : screen === "settings" ? (
+              <AccountSettings onSessionEnded={logout} />
             ) : screen === "wallet" ? (
               <section className="editor">
                 <Coins size={36} />

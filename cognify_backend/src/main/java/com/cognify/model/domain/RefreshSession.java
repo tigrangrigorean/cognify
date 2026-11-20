@@ -25,4 +25,5 @@ public class RefreshSession {
   private Instant expiresAt;
 
   private boolean revoked;
+  private UUID sessionId;
 }

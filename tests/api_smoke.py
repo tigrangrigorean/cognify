@@ -46,6 +46,8 @@ rotated = call('POST', '/auth/refresh', {'refreshToken': first['refreshToken']})
 call('POST', '/auth/refresh', {'refreshToken': first['refreshToken']}, expected=401)
 call('POST', '/auth/logout', {'refreshToken': rotated['refreshToken']})
 call('POST', '/auth/refresh', {'refreshToken': rotated['refreshToken']}, expected=401)
+call('GET', '/me', token=a, expected=401)
+a = call('POST', '/auth/login', {'email': email, 'password': password})['accessToken']
 call('DELETE', '/documents/' + doc['id'], token=a)
 assert call('GET', '/documents', token=a) == []
 print('PASS: registration, login, zero wallet, CRUD, ownership, stale version, ADMIN denial, CMS, refresh rotation and logout')

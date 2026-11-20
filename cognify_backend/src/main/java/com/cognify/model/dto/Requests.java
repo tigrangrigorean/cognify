@@ -3,6 +3,10 @@ package com.cognify.model.dto;
 import jakarta.validation.constraints.*;
 
 public class Requests {
+  public record PasswordChange(
+      @NotBlank @Size(max = 72) String currentPassword,
+      @NotBlank @Size(min = 10, max = 72) String newPassword) {}
+
   public record Register(
       @Email @NotBlank @Size(max = 254) String email,
       @NotBlank @Size(min = 10, max = 72) String password,

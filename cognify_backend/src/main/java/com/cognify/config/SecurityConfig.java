@@ -28,8 +28,12 @@ public class SecurityConfig {
   }
 
   @Bean
-  JwtDecoder decoder(SecretKeySpec key) {
-    return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
+  JwtDecoder decoder(SecretKeySpec key, com.cognify.api.security.SessionTokenValidator sessions) {
+    var decoder = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
+    decoder.setJwtValidator(
+        new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
+            JwtValidators.createDefault(), sessions));
+    return decoder;
   }
 
   @Bean

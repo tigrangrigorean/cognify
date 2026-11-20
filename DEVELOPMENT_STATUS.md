@@ -70,3 +70,7 @@ MAVEN_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts \
 ```
 
 `work/` — локальные инструменты/логи, не часть исходников и не переносимый runtime. Не запускайте генераторы create.py/frontend.py: они были одноразовыми и могут перезаписать исправленный код. PostgreSQL тестовый контейнер называется `cognify-postgres`; использует только тестовые данные. В этой среде стандартная папка outputs `/codex/...` оказалась read-only; исходники сохранены в `/workspace/cognify`.
+
+## Продолжение: миграции и сессии (21 ноября 2026)
+
+Этот блок заменяет устаревшие сведения выше о миграциях и отзыве JWT. Добавлены Flyway V1–V3, validate по умолчанию/production, FK, индексы, ограничения роли/баланса. На копии прежней PostgreSQL и на пустой базе миграции прошли. Сессии теперь сохраняются отдельно; logout/revoke/revoke-all/password change немедленно блокируют JWT. Повтор refresh отзывает семейство и фиксируется несмотря на HTTP 401. Account row lock сериализует изменения сессий. Добавлены армянский UI безопасности и backend endpoints. Проверено: 4 backend tests, 5 frontend tests, production frontend/backend builds, HTTP smoke на migrated PostgreSQL и конкурентная ротация двух запросов (один 200, один 401, результирующий JWT отозван). Cookies и документация следующего шага еще в работе.
