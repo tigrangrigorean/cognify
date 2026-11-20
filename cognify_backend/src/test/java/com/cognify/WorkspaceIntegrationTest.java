@@ -113,6 +113,15 @@ class WorkspaceIntegrationTest {
   }
 
   @Test
+  void unavailableSmtpIsExplicit() throws Exception {
+    mvc.perform(
+            post("/api/auth/forgot-password")
+                .contentType("application/json")
+                .content("{\"email\":\"someone@example.com\"}"))
+        .andExpect(status().isServiceUnavailable());
+  }
+
+  @Test
   void invalidRegistrationRejected() throws Exception {
     mvc.perform(
             post("/api/auth/register")

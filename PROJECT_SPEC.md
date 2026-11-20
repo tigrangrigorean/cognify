@@ -2,7 +2,7 @@
 Requested product: Armenian academic document SaaS, no subscriptions, Next.js App Router JavaScript frontend and Spring Boot 3.5.6 Java 17 backend, PostgreSQL.
 
 ## Architecture
-Browser → Next.js same-origin /api proxy → Spring Security JWT → controllers → transactional services → JPA → PostgreSQL. Passwords use BCrypt. Refresh tokens are opaque, hashed at rest, rotated and revocable. Documents belong to their creator. API uses DTOs. Backend owns all credentials and financial decisions.
+Browser → Next.js auth BFF (HttpOnly cookie, Origin/CSRF checks) or same-origin Bearer /api proxy → Spring Security JWT + persisted session validation → controllers → transactional services → JPA → PostgreSQL. Passwords use BCrypt. Refresh tokens are opaque, hashed at rest, rotated and bound to persisted user sessions. Account row locks serialize rotation and revocation; replay revokes the session. Password reset uses hashed, expiring one-time tokens and a real configurable SMTP adapter. Flyway V1–V4 manage the schema and Hibernate validates it by default. Documents belong to their creator. API uses DTOs. Backend owns all credentials and financial decisions.
 
 ## Delivery stages
 1. Repository analysis and architecture

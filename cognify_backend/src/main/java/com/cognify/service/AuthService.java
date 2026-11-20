@@ -25,6 +25,7 @@ public class AuthService {
   private final UserSessionRepository sessions;
   private final PasswordEncoder passwords;
   private final JwtEncoder encoder;
+  private final PasswordResetRepository resets;
 
   public record AuthResult(String accessToken, String refreshToken, String name) {}
 
@@ -141,6 +142,7 @@ public class AuthService {
         || !passwords.matches(r.currentPassword(), a.getPasswordHash()))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
     a.setPasswordHash(passwords.encode(r.newPassword()));
+    resets.findByOwnerId(owner).forEach(rst -> rst.setUsed(true));
     sessions.findByOwnerIdOrderByCreatedAtDesc(owner).forEach(s -> s.setRevoked(true));
   }
 

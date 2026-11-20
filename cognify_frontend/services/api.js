@@ -6,23 +6,25 @@ export function setToken(token) {
 
 async function refresh() {
   if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      const refreshToken = sessionStorage.getItem("refresh");
-      if (!refreshToken) throw new Error("Մուտք գործեք կրկին։");
+    const rotate = async () => {
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Cognify-CSRF": "1" },
+        body: "{}",
       });
       if (!response.ok) {
-        sessionStorage.removeItem("refresh");
         accessToken = "";
         throw new Error("Մուտք գործեք կրկին։");
       }
       const data = await response.json();
       accessToken = data.accessToken;
-      sessionStorage.setItem("refresh", data.refreshToken);
-    })().finally(() => {
+    };
+    refreshInFlight = (
+      typeof navigator !== "undefined" && navigator.locks
+        ? navigator.locks.request("cognify-refresh", rotate)
+        : rotate()
+    ).finally(() => {
       refreshInFlight = null;
     });
   }
@@ -32,8 +34,10 @@ async function refresh() {
 export async function api(path, options = {}, retry = true) {
   const response = await fetch("/api" + path, {
     ...options,
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
+      ...(path.startsWith("/auth/") ? { "X-Cognify-CSRF": "1" } : {}),
       ...(accessToken ? { Authorization: "Bearer " + accessToken } : {}),
       ...options.headers,
     },

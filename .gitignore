@@ -5,3 +5,4 @@ target/
 .env.local
 work/
 *.log
+*.dump

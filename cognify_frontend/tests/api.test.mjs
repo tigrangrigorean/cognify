@@ -38,17 +38,13 @@ test("Concurrent expired requests rotate refresh token once", async () => {
   const { api, setToken } = await fresh();
   setToken("expired");
   let rotations = 0;
-  const store = new Map([["refresh", "old-refresh"]]);
-  global.sessionStorage = {
-    getItem: (k) => store.get(k),
-    setItem: (k, v) => store.set(k, v),
-    removeItem: (k) => store.delete(k),
-  };
   global.fetch = async (url, opts) => {
     if (url === "/api/auth/refresh") {
       rotations++;
       await new Promise((resolve) => setTimeout(resolve, 10));
-      return response({ accessToken: "fresh", refreshToken: "rotated" });
+      assert.equal(opts.body, "{}");
+      assert.equal(opts.headers["X-Cognify-CSRF"], "1");
+      return response({ accessToken: "fresh" });
     }
     return opts.headers.Authorization === "Bearer fresh"
       ? response({ ok: true })
@@ -56,7 +52,6 @@ test("Concurrent expired requests rotate refresh token once", async () => {
   };
   const result = await Promise.all([api("/me"), api("/documents")]);
   assert.equal(rotations, 1);
-  assert.equal(store.get("refresh"), "rotated");
   assert.deepEqual(result, [{ ok: true }, { ok: true }]);
 });
 test("204 response is accepted", async () => {
@@ -68,18 +63,11 @@ test("204 response is accepted", async () => {
 test("Concurrent session restoration rotates only once", async () => {
   const { resumeSession } = await fresh();
   let rotations = 0;
-  const store = new Map([["refresh", "old"]]);
-  global.sessionStorage = {
-    getItem: (k) => store.get(k),
-    setItem: (k, v) => store.set(k, v),
-    removeItem: (k) => store.delete(k),
-  };
   global.fetch = async () => {
     rotations++;
     await new Promise((resolve) => setTimeout(resolve, 10));
-    return response({ accessToken: "restored", refreshToken: "new" });
+    return response({ accessToken: "restored" });
   };
   await Promise.all([resumeSession(), resumeSession()]);
   assert.equal(rotations, 1);
-  assert.equal(store.get("refresh"), "new");
 });

@@ -53,7 +53,6 @@ export default function Home() {
         body: JSON.stringify(data),
       });
       setToken(a.accessToken);
-      sessionStorage.setItem("refresh", a.refreshToken);
       await reload();
       setAuth(null);
       setScreen("dashboard");
@@ -91,28 +90,26 @@ export default function Home() {
   }
   async function logout() {
     try {
-      await api("/auth/logout", {
-        method: "POST",
-        body: JSON.stringify({
-          refreshToken: sessionStorage.getItem("refresh"),
-        }),
-      });
-    } catch {}
-    sessionStorage.removeItem("refresh");
+      await api("/auth/logout", { method: "POST", body: "{}" });
+    } catch (e) {
+      setError(e.message);
+      return;
+    }
     setToken("");
     setProfile(null);
+    setDocs([]);
     setScreen("home");
     setEdit(null);
   }
   useEffect(() => {
-    const token = sessionStorage.getItem("refresh");
-    if (token)
-      resumeSession()
-        .then(async () => {
-          await reload();
-          setScreen("dashboard");
-        })
-        .catch(() => sessionStorage.removeItem("refresh"));
+    // Remove the legacy JavaScript-readable credential after upgrading.
+    sessionStorage.removeItem("refresh");
+    resumeSession()
+      .then(async () => {
+        await reload();
+        setScreen("dashboard");
+      })
+      .catch(() => {});
   }, []);
   function create() {
     setEdit({ title: "", kind: "COURSEWORK", content: "", version: 0 });
@@ -667,6 +664,11 @@ export default function Home() {
                     : "Մուտք գործել"}
               </button>
             </form>
+            {auth === "login" && (
+              <a className="plain switch" href="/forgot-password">
+                Մոռացե՞լ եք գաղտնաբառը։
+              </a>
+            )}
             <button
               className="plain switch"
               onClick={() => {
