@@ -2,7 +2,19 @@
 
 Обновлено: 21 ноября 2026. **Промежуточная версия; полное ТЗ не завершено.**
 
-## Последнее завершенное продолжение
+## Последнее продолжение: CMS и административный интерфейс
+
+- Добавлены Flyway V5–V7: cms_block, audit_log и публичные тексты/branding/buttons. Все миграции V1–V7 прошли на PostgreSQL.
+- CmsService отделен от controller. Публичные блоки: преимущества, инструменты, процесс работы, примеры, Coins, FAQ и CTA. Редактируются заголовок, текст, элементы, порядок и видимость. Блоки защищены optimistic locking; устаревшая версия получает 409.
+- Настройки: имя, logo HTTPS URL/local path, hero texts, CTA labels, SEO title/description, контакты, footer, privacy/terms. Настройки сериализуются DB lock, но не имеют клиентского version check.
+- `/admin`: проверка ADMIN через API, формы настроек/блоков, добавление/удаление элементов, журнал с before/after и пагинацией. Редактирование и audit атомарны; в журнал не попадают личные документы.
+- Главная использует DB-блоки. Добавлены `/tools`, `/pricing`, `/faq`, `/contact`, `/privacy`, `/terms`; SEO и отдельные страницы читают backend без cache. Дизайн hero сохранен.
+- Пределы CMS: hero/intro остаются фиксированными по порядку/видимости; logo загружается по URL, file-upload нет; нет конструктора произвольных типов блоков и preview editor. Политика/условия явно предварительные и требуют заполнения владельцем.
+- Проверки текущего состояния: **9 backend + 16 frontend tests**, обе production-сборки. PostgreSQL `cms_smoke.py`: USER denial, hide/publish, concurrent winner/409, точный аудит успешных изменений, URL validation. FAQ восстанавливается тестом. Повторно прошли `api_smoke.py` и live BFF handler integration. Это не browser E2E.
+- Browser preview повторно заблокирован: `relay could not open browser port 4173`. Визуальная проверка и UI-form E2E остаются невыполненными.
+
+## Предыдущее продолжение: авторизация
+
 
 - Flyway V1–V4: исходная схема, FK, индексы, ограничения роли и неотрицательного баланса, отзываемые сессии, recovery tokens. Hibernate validate по умолчанию и в production; отдельный dev profile с update.
 - Проверена миграция копии прежней Hibernate/PostgreSQL базы и пустой PostgreSQL. Исходные аккаунты, кошельки и CMS-строки сохранены; прежняя база не изменялась. В исходной базе документов не было. Проверен повторный запуск без повторного применения миграций.
@@ -19,7 +31,7 @@
 | 1. Анализ/архитектура | Выполнен, исходное ТЗ в REQUEST.txt |
 | 2. Setup/DB | Рабочая основа + миграции; сборки проверены |
 | 3. Авторизация | Основные сценарии реализованы; SMTP delivery/browser E2E и distributed rate limiting еще требуют проверки/доработки |
-| 4. Landing/CMS | Армянский landing, 3 DB-текста, 4 CMS API-ключа. Нет полной CMS, admin UI, SEO/порядка/видимости, отдельных информационных страниц |
+| 4. Landing/CMS | Рабочая CMS и admin UI, публичные страницы, SEO, порядок/видимость блоков; ограничения перечислены выше |
 | 5. Dashboard | Документы, количество, баланс, редактор, безопасность. Нет уведомлений/генераций/истории операций |
 | 6. Wallet/Coins | Только wallet с 0; ledger, пакеты, резервы, списания/возвраты отсутствуют |
 | 7. Академические инструменты | Ручные черновики четырех типов; AI-параметры и генерация отсутствуют |
@@ -29,14 +41,14 @@
 | 11. Editor | Plain text CRUD + optimistic locking; нет секций, истории версий, rich text/AI |
 | 12. DOCX/PDF export | Не реализован |
 | 13. Research/formatter/checker/citations | Не реализованы |
-| 14. Admin | Только защищенный CMS API; нет UI и audit trail |
+| 14. Admin | CMS UI + audit; пользователи, финансы и генерации еще не реализованы |
 | 15. Payments | Не реализованы; платежи не принимаются |
 | 16. QA | Частично: выполненные проверки ниже |
 
 ## Выполненные проверки
 
-- Backend `mvn package`: **7 интеграционных тестов, 0 failures/errors**. H2 запускает реальные Flyway migrations и Hibernate validate. Проверки ownership, optimistic locking, roles, JWT, replay, revoke, смены пароля, reset expiry/single-use, отказа старого пароля, отзыва сессий и явного SMTP 503.
-- Frontend `npm test`: **14 tests passed**, API-client single-flight refresh, BFF cookie flags/secret stripping, CSRF/origin rejection, rotation, logout, recovery, SMTP failure handling и порядок rewrites: backend proxy только fallback после local dynamic auth routes.
+- Backend `mvn package`: **9 интеграционных тестов, 0 failures/errors**. H2 запускает реальные Flyway migrations и Hibernate validate. Проверки ownership, optimistic locking, roles, JWT, replay, revoke, смены пароля, reset expiry/single-use, отказа старого пароля, отзыва сессий и явного SMTP 503.
+- Frontend `npm test`: **16 tests passed**, API-client single-flight refresh, BFF cookie flags/secret stripping, CSRF/origin rejection, rotation, logout, recovery, SMTP failure handling и порядок rewrites: backend proxy только fallback после local dynamic auth routes.
 - `npm run build`: production Next.js build прошел, включая динамический auth route и две recovery pages.
 - PostgreSQL 17: `python3 tests/api_smoke.py http://localhost:8083` — HTTP auth/document workflow прошел.
 - PostgreSQL 17: `python3 tests/session_concurrency.py http://localhost:8083` — два concurrent refresh дают один 200 и один 401; replay отзывает результирующий JWT; последующий login и logout проверены.
@@ -47,14 +59,14 @@
 
 ## Следующий этап
 
-Продолжить этап 4, сохраняя нынешний UI и auth:
+Начать финансовое ядро этапа 6, не менять рабочие auth/CMS/document APIs:
 
-1. Добавить общий audit log и транзакционный CMS service; все admin изменения должны иметь actor, action, target, timestamp и безопасный diff.
-2. Расширить CMS до блоков landing/FAQ/tools/contact/footer/SEO с порядком/видимостью, DTO validation и API.
-3. Добавить защищенную admin страницу и отдельные публичные маршруты. Проверить USER denial, DB persistence и отражение изменений в публичном сайте.
-4. Затем этап 6: финансовый ledger, резервы, settlement/refund, idempotency и PostgreSQL concurrency tests. До завершения финансового ядра не включать платные AI jobs.
+1. Добавить миграции V8+ для coin transactions, reservations, packages, pricing rules, payment records и usage. Зафиксировать инварианты: баланс неотрицательный, сумма резервов не превышает доступное, операции имеют уникальный idempotency key.
+2. Реализовать transactional wallet service с блокировкой кошелька: reserve, settle, release/refund. Все финансовые изменения должны иметь audit trail; ручная корректировка — обязательную причину.
+3. Добавить unit и PostgreSQL concurrency/idempotency tests до включения UI покупок. PaymentProvider сначала только явно тестовый и отключенный в production; не принимать начисления из неподтвержденного browser callback.
+4. Подключить кошелек и историю операций к frontend. Затем AI-инструменты/анализ/профили/асинхронный pipeline по ТЗ.
 
-Параллельные security-задачи перед production: trusted reverse proxy и распределенный limiter (сейчас IP может быть общим для Next.js), audit security events, CSP/XSS review, cleanup expired tokens, SMTP outbox, проверка доставки и browser E2E. Email verification не реализован. При отсутствии Web Locks несколько вкладок могут вызвать replay и потребовать повторного входа. Операция, уже начатая до отзыва JWT, может завершиться.
+CMS остается с фиксированными типами блоков, без logo upload, preview editor и version check текстовых настроек. Общие security-задачи перед production: distributed rate limiter, audit security events, CSP/XSS review, cleanup expired tokens, SMTP outbox/проверка доставки, browser E2E. Email verification не реализован. Операция, начатая до отзыва JWT, может завершиться.
 
 ## Окружение и продолжение
 
@@ -71,6 +83,6 @@ MAVEN_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts \
 -f /workspace/cognify/cognify_backend/pom.xml package
 ```
 
-Docker: `cognify-postgres`, исходная dev-БД `cognify`, тестовые копии `cognify_phase2_legacy` и `cognify_phase2_fresh`. Последний backend с V4 тестировался на 8083. Тесты оставляют disposable accounts. Не полагайтесь на сохранение процессов между сеансами; запускайте приложения по README.
+Docker: `cognify-postgres`, исходная dev-БД `cognify`, тестовые копии `cognify_phase2_legacy` и `cognify_phase2_fresh`. Последний backend с V7 тестировался на 8081; 8080 использовался для промежуточной сборки CMS. Тесты оставляют disposable accounts. Не полагайтесь на сохранение процессов между сеансами; запускайте приложения по README.
 
-`work/` содержит локальные инструменты, backup тестовой базы и логи; не коммитить. Генераторы create.py/frontend.py/phase2.py/reset-phase.py были одноразовыми — **не запускать повторно**, они могут затереть исправления. Стандартная папка outputs `/codex/...` в этой среде read-only; исходники находятся в workspace.
+`work/` содержит локальные инструменты, backup тестовой базы и логи; не коммитить. Генераторы create.py/frontend.py/phase2.py/reset-phase.py/cms-phase.py были одноразовыми — **не запускать повторно**, они могут затереть исправления. Стандартная папка outputs `/codex/...` в этой среде read-only; исходники находятся в workspace.

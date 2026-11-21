@@ -15,6 +15,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { api, setToken, resumeSession } from "../services/api";
+import PublicBlocks from "../components/PublicBlocks";
 import AccountSettings from "../components/AccountSettings";
 const kinds = {
   COURSEWORK: "Կուրսային աշխատանք",
@@ -32,6 +33,12 @@ export default function Home() {
     [busy, setBusy] = useState(false),
     [edit, setEdit] = useState(null),
     [notice, setNotice] = useState("");
+  const [blocks, setBlocks] = useState([]);
+  useEffect(() => {
+    api("/public/blocks")
+      .then(setBlocks)
+      .catch(() => setNotice("Բովանդակությունն այժմ հասանելի չէ։"));
+  }, []);
   useEffect(() => {
     api("/public/content")
       .then(setCms)
@@ -120,16 +127,23 @@ export default function Home() {
       <header>
         <a className="brand" href="/">
           {" "}
-          <span className="brandmark">
-            <Layers size={24} />
-          </span>
-          cognify<span className="branddot">.</span>
+          {cms.logoUrl ? (
+            <img src={cms.logoUrl} alt="" width="38" height="38" />
+          ) : (
+            <span className="brandmark">
+              <Layers size={24} />
+            </span>
+          )}
+          {cms.siteName || "Cognify"}
+          <span className="branddot">.</span>
         </a>
         <nav>
-          <a href="#tools">Գործիքներ</a>
-          <a href="#how">Ինչպես է աշխատում</a>
-          <a href="#pricing">Coins</a>
-          <a href="#faq">Հարցեր</a>
+          <a href="/tools">Գործիքներ</a>
+          {blocks.some((b) => b.key === "how") && (
+            <a href="#how">Ինչպես է աշխատում</a>
+          )}
+          <a href="/pricing">Coins</a>
+          <a href="/faq">Հարցեր</a>
         </nav>
         <div className="header-actions">
           {profile ? (
@@ -217,6 +231,11 @@ export default function Home() {
               <ShieldCheck size={18} />
               Անվտանգություն
             </button>
+            {profile.role === "ADMIN" && (
+              <a className="button outline" href="/admin">
+                Բովանդակության կառավարում
+              </a>
+            )}
             <div className="aside-bottom">
               <ShieldCheck size={24} />
               <p>Ձեր փաստաթղթերը հասանելի են միայն ձեզ։</p>
@@ -383,10 +402,10 @@ export default function Home() {
               </p>
               <div className="hero-actions">
                 <button onClick={() => setAuth("register")}>
-                  Ստեղծել իմ հաշիվը
+                  {cms.primaryCta || "Ստեղծել իմ հաշիվը"}
                 </button>
-                <a className="outline button" href="#tools">
-                  Ուսումնասիրել գործիքները
+                <a className="outline button" href="/tools">
+                  {cms.secondaryCta || "Ուսումնասիրել գործիքները"}
                 </a>
               </div>
               <div className="trust">
@@ -462,133 +481,24 @@ export default function Home() {
             <b>Խմբագրեք։</b>
             <b>Պահպանեք։</b>
           </div>
-          <section id="tools" className="section">
-            <div className="eyebrow">ԱՅՍՏԵՂ Է ՍԿՍՎՈՒՄ ԱՇԽԱՏԱՆՔԸ</div>
-            <h2>Տարածք յուրաքանչյուր գաղափարի համար</h2>
-            <p className="section-description">
-              Սկսեք սևագրից։ Մնացած հնարավորությունները զարգացնում ենք փուլ առ
-              փուլ։
-            </p>
-            <div className="tool-grid">
-              {Object.entries(kinds).map(([key, label], i) => (
-                <article key={key}>
-                  <div className="tool-icon">
-                    {i === 1 ? <BookOpen /> : <FileText />}
-                  </div>
-                  <span className="available">Սևագրի խմբագրիչ</span>
-                  <h3>{label}</h3>
-                  <p>
-                    Ստեղծեք, խմբագրեք և պահպանեք ձեր աշխատանքը անձնական
-                    տարածքում։
-                  </p>
-                  <button
-                    className="text-button"
-                    onClick={() => setAuth("register")}
-                  >
-                    Սկսել աշխատանքը
-                  </button>
-                </article>
-              ))}
-            </div>
-            <div className="upcoming">
-              <Sparkles />
-              <div>
-                <b>Հաջորդը՝ AI գործիքներ և խելացի ձևավորում</b>
-                <p>
-                  Փուլային գեներացիան, նմուշների վերլուծությունը և DOCX/PDF
-                  արտահանումը մշակման փուլում են։
-                </p>
-              </div>
-              <span>Շուտով</span>
-            </div>
-          </section>
-          <section className="how section" id="how">
-            <div>
-              <div className="eyebrow">ՊԱՐԶ ԱՇԽԱՏԱՆՔԱՅԻՆ ԸՆԹԱՑՔ</div>
-              <h2>
-                Կենտրոնացեք
-                <br />
-                ձեր գաղափարի վրա։
-              </h2>
-              <p>
-                Աշխատանքը պահպանվում է ձեր հաշվում՝
-                <br />
-                հաջորդ անգամ շարունակելու համար։
-              </p>
-            </div>
-            <div className="steps">
-              {[
-                [
-                  "Ստեղծեք հաշիվ",
-                  "Գրանցվեք և բացեք ձեր անձնական աշխատանքային տարածքը։",
-                ],
-                [
-                  "Սկսեք փաստաթուղթ",
-                  "Ընտրեք աշխատանքի տեսակը և ավելացրեք բովանդակությունը։",
-                ],
-                [
-                  "Խմբագրեք և պահպանեք",
-                  "Վերադարձեք ձեր աշխատանքին ցանկացած պահի։",
-                ],
-              ].map(([t, d], i) => (
-                <div key={t}>
-                  <span>{i + 1}</span>
-                  <article>
-                    <h3>{t}</h3>
-                    <p>{d}</p>
-                  </article>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="section pricing" id="pricing">
-            <Coins size={32} />
-            <div className="eyebrow">ՎՃԱՐԵՔ ՄԻԱՅՆ ՕԳՏԱԳՈՐԾՄԱՆ ՀԱՄԱՐ</div>
-            <h2>Coins։ Առանց բաժանորդագրության։</h2>
-            <p>
-              Հետագայում Coins-ը կօգտագործվի AI գործիքների համար։
-              <br />
-              Այժմ սևագրերի ստեղծումն ու խմբագրումն անվճար են։
-            </p>
-            <span className="pill">Coins-ի գնումները դեռ հասանելի չեն</span>
-          </section>
-          <section className="section faq" id="faq">
-            <h2>Հաճախ տրվող հարցեր</h2>
-            {[
-              [
-                "Ի՞նչ կարող եմ անել հիմա։",
-                "Կարող եք ստեղծել հաշիվ, ստեղծել ու խմբագրել փաստաթղթեր և պահպանել դրանք ձեր անձնական տարածքում։",
-              ],
-              [
-                "AI գեներացիան հասանելի՞ է։",
-                "Դեռ ոչ։ Այս տարբերակում հասանելի է ձեռքով խմբագրումը։ AI գործիքները կավելացվեն հետագա փուլերում։",
-              ],
-              [
-                "Կա՞ ամսական բաժանորդագրություն։",
-                "Ոչ։ Նախատեսված է Coins-ի միանվագ գնում։ Այս պահին վճարումներ չեն ընդունվում։",
-              ],
-            ].map(([q, a]) => (
-              <details key={q}>
-                <summary>{q}</summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </section>
-          <section className="cta">
-            <Layers size={30} />
-            <h2>Ձեր հաջորդ գաղափարին՝ նոր սկիզբ։</h2>
-            <button onClick={() => setAuth("register")}>
-              Ստեղծել անվճար հաշիվ
-            </button>
-          </section>
+          <PublicBlocks
+            blocks={blocks}
+            settings={cms}
+            onStart={() => setAuth("register")}
+          />
         </main>
       )}
       <footer>
         <a className="brand" href="/">
-          cognify.
+          {cms.siteName || "Cognify"}
         </a>
         <p>{cms.footer || "Ակադեմիական աշխատանքի ձեր անձնական տարածքը։"}</p>
-        <span>© {new Date().getFullYear()} Cognify</span>
+        <a href="/contact">Կոնտակտներ</a>
+        <a href="/privacy">Գաղտնիություն</a>
+        <a href="/terms">Պայմաններ</a>
+        <span>
+          © {new Date().getFullYear()} {cms.siteName || "Cognify"}
+        </span>
       </footer>
       {auth && (
         <div className="modal-backdrop" onClick={() => setAuth(null)}>

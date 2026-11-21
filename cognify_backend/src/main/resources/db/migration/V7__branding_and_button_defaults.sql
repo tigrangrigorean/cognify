@@ -1,0 +1,4 @@
+INSERT INTO cmscontent(id,content_key,content_value) SELECT '677cfea7-94fe-4d67-b90f-4fb04cc2d291', 'secondaryCta', 'Ուսումնասիրել գործիքները' WHERE NOT EXISTS (SELECT 1 FROM cmscontent WHERE content_key='secondaryCta');
+INSERT INTO cmscontent(id,content_key,content_value) SELECT '3b5c7d75-2d43-4f6b-b1b8-321bf689007b', 'ctaButton', 'Ստեղծել հաշիվ' WHERE NOT EXISTS (SELECT 1 FROM cmscontent WHERE content_key='ctaButton');
+INSERT INTO cmscontent(id,content_key,content_value) SELECT 'f129637f-a257-47cb-925f-a1fa56644c82', 'toolButton', 'Սկսել աշխատանքը' WHERE NOT EXISTS (SELECT 1 FROM cmscontent WHERE content_key='toolButton');
+INSERT INTO cmscontent(id,content_key,content_value) SELECT '91ad1e54-1040-4306-89ac-51a1b58e544e', 'logoUrl', '/logo.svg' WHERE NOT EXISTS (SELECT 1 FROM cmscontent WHERE content_key='logoUrl');
