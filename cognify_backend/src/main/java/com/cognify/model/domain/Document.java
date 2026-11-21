@@ -23,6 +23,9 @@ public class Document {
 
   private String kind;
 
+  @Column(nullable = false)
+  private String generationMode = "MANUAL";
+
   @Column(columnDefinition = "text")
   private String content = "";
 

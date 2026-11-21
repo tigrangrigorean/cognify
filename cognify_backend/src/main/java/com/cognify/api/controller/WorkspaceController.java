@@ -25,6 +25,11 @@ public class WorkspaceController {
     return service.list(UUID.fromString(jwt.getSubject()));
   }
 
+  @GetMapping("/documents/{id}")
+  public WorkspaceService.Doc get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+    return service.get(UUID.fromString(jwt.getSubject()), id);
+  }
+
   @PostMapping("/documents")
   public WorkspaceService.Doc create(
       @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DocumentInput r) {

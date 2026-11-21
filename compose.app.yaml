@@ -1,0 +1,22 @@
+# Use with: docker compose -f compose.yaml -f compose.app.yaml up --build -d
+services:
+  backend:
+    build: ./cognify_backend
+    env_file: .env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/cognify
+      DB_USER: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+  frontend:
+    build: ./cognify_frontend
+    environment:
+      BACKEND_URL: http://backend:8080
+      AUTH_ORIGIN: ${AUTH_ORIGIN:-http://localhost:3000}
+    depends_on: [backend]
+    ports: ["127.0.0.1:3000:3000"]
+    restart: unless-stopped

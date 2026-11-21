@@ -31,7 +31,7 @@ async function refresh() {
   return refreshInFlight;
 }
 
-export async function api(path, options = {}, retry = true) {
+async function request(path, options = {}, retry = true) {
   const response = await fetch("/api" + path, {
     ...options,
     credentials: "same-origin",
@@ -44,7 +44,7 @@ export async function api(path, options = {}, retry = true) {
   });
   if (response.status === 401 && retry && !path.startsWith("/auth/")) {
     await refresh();
-    return api(path, options, false);
+    return request(path, options, false);
   }
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -55,10 +55,18 @@ export async function api(path, options = {}, retry = true) {
           : "Հարցումը չհաջողվեց։ Փորձեք կրկին։"),
     );
   }
-  const text = await response.text();
-  return text ? JSON.parse(text) : null;
+  return response;
 }
 
 export async function resumeSession() {
   return refresh();
+}
+
+export async function api(path, options = {}) {
+  const response = await request(path, options);
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+export async function downloadBlob(path) {
+  return (await request(path)).blob();
 }

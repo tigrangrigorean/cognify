@@ -17,15 +17,29 @@ public class WorkspaceService {
   private final DocumentRepository documents;
   private final WalletRepository wallets;
   private final AccountRepository accounts;
+  private final DocumentSectionRepository sections;
+  private final DocumentHistoryService history;
 
   public record Doc(
-      UUID id, String title, String kind, String content, Instant updatedAt, long version) {}
+      UUID id,
+      String title,
+      String kind,
+      String content,
+      Instant updatedAt,
+      long version,
+      String generationMode) {}
 
   public record Profile(String name, String email, long balance, String role) {}
 
-  private Doc dto(Document d) {
+  public static Doc toDto(Document d) {
     return new Doc(
-        d.getId(), d.getTitle(), d.getKind(), d.getContent(), d.getUpdatedAt(), d.getVersion());
+        d.getId(),
+        d.getTitle(),
+        d.getKind(),
+        d.getContent(),
+        d.getUpdatedAt(),
+        d.getVersion(),
+        d.getGenerationMode());
   }
 
   @Transactional(readOnly = true)
@@ -38,7 +52,17 @@ public class WorkspaceService {
 
   @Transactional(readOnly = true)
   public List<Doc> list(UUID owner) {
-    return documents.findByOwnerIdOrderByUpdatedAtDesc(owner).stream().map(this::dto).toList();
+    return documents.findByOwnerIdOrderByUpdatedAtDesc(owner).stream()
+        .map(WorkspaceService::toDto)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public Doc get(UUID owner, UUID id) {
+    return toDto(
+        documents
+            .findByIdAndOwnerId(id, owner)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)));
   }
 
   @Transactional
@@ -47,24 +71,30 @@ public class WorkspaceService {
         id == null
             ? new Document()
             : documents
-                .findByIdAndOwnerId(id, owner)
+                .lockOwned(id, owner)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     if (id != null && d.getVersion() != input.version())
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "Document changed; reload before saving");
+    if (id != null) {
+      if (sections.existsByDocumentId(id) && !Objects.equals(input.content(), d.getContent()))
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT, "Use the section editor for this document");
+      history.snapshot(d);
+    }
     d.setOwnerId(owner);
     d.setTitle(input.title());
     d.setKind(input.kind());
     d.setContent(input.content());
     d.setUpdatedAt(Instant.now());
-    return dto(documents.saveAndFlush(d));
+    return toDto(documents.saveAndFlush(d));
   }
 
   @Transactional
   public void delete(UUID owner, UUID id) {
     documents.delete(
         documents
-            .findByIdAndOwnerId(id, owner)
+            .lockOwned(id, owner)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)));
   }
 }

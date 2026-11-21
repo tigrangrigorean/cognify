@@ -71,3 +71,30 @@ test("Concurrent session restoration rotates only once", async () => {
   await Promise.all([resumeSession(), resumeSession()]);
   assert.equal(rotations, 1);
 });
+
+test("Binary DOCX download refreshes authentication and preserves bytes", async () => {
+  const { downloadBlob, setToken } = await fresh();
+  setToken("expired");
+  const bytes = new Uint8Array([80, 75, 3, 4, 0, 255]);
+  global.fetch = async (url, opts) => {
+    if (url === "/api/auth/refresh")
+      return response({ accessToken: "renewed" });
+    assert.equal(url, "/api/documents/example/export.docx");
+    return opts.headers.Authorization === "Bearer renewed"
+      ? new Response(bytes, {
+          headers: {
+            "Content-Type":
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          },
+        })
+      : response({}, 401);
+  };
+  assert.deepEqual(
+    new Uint8Array(
+      await (
+        await downloadBlob("/documents/example/export.docx")
+      ).arrayBuffer(),
+    ),
+    bytes,
+  );
+});

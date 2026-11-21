@@ -15,6 +15,8 @@ import {
   PenLine,
 } from "lucide-react";
 import { api, setToken, resumeSession } from "../services/api";
+import GenerationPanel from "../components/GenerationPanel";
+import DocumentEditor from "../components/DocumentEditor";
 import WalletPanel from "../components/WalletPanel";
 import PublicBlocks from "../components/PublicBlocks";
 import AccountSettings from "../components/AccountSettings";
@@ -213,6 +215,16 @@ export default function Home() {
               Իմ փաստաթղթերը
             </button>
             <button
+              className={screen === "generation" ? "selected" : "plain"}
+              onClick={() => {
+                setScreen("generation");
+                setEdit(null);
+              }}
+            >
+              <Sparkles size={18} />
+              AI գեներացիա
+            </button>
+            <button
               className={screen === "wallet" ? "selected" : "plain"}
               onClick={() => {
                 setScreen("wallet");
@@ -254,56 +266,42 @@ export default function Home() {
                 <h1>Բարև, {profile.name}</h1>
                 <p>Ձեր հաջորդ աշխատանքը սկսվում է այստեղ։</p>
               </div>
-              <button onClick={create}>
-                <Plus size={18} />
-                Նոր փաստաթուղթ
-              </button>
+              <div className="generation-actions">
+                <button
+                  onClick={() => {
+                    setScreen("generation");
+                    setEdit(null);
+                  }}
+                >
+                  Ստեղծել AI աշխատանք
+                </button>
+                <button className="outline" onClick={create}>
+                  Դատարկ փաստաթուղթ
+                </button>
+              </div>
             </div>
             {edit ? (
-              <section className="editor">
-                <div className="row">
-                  <h2>Փաստաթղթի խմբագրիչ</h2>
-                  <button onClick={save} disabled={busy || !edit.title.trim()}>
-                    <Save size={18} />
-                    Պահպանել
-                  </button>
-                </div>
-                <label>
-                  Վերնագիր
-                  <input
-                    value={edit.title}
-                    maxLength={200}
-                    onChange={(e) =>
-                      setEdit({ ...edit, title: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Աշխատանքի տեսակ
-                  <select
-                    value={edit.kind}
-                    onChange={(e) => setEdit({ ...edit, kind: e.target.value })}
-                  >
-                    {Object.entries(kinds).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Բովանդակություն
-                  <textarea
-                    rows={18}
-                    value={edit.content}
-                    maxLength={200000}
-                    onChange={(e) =>
-                      setEdit({ ...edit, content: e.target.value })
-                    }
-                  />
-                </label>
-                <small>Ձեռքով խմբագրում • AI գեներացիան դեռ հասանելի չէ</small>
-              </section>
+              <DocumentEditor
+                document={edit}
+                onSaved={async (d) => {
+                  setEdit(d);
+                  await reload();
+                }}
+              />
+            ) : screen === "generation" ? (
+              <GenerationPanel
+                onUpdate={reload}
+                onOpen={async (id) => {
+                  try {
+                    const d = await api("/documents/" + id);
+                    setEdit(d);
+                    setScreen("documents");
+                    await reload();
+                  } catch (e) {
+                    setError(e.message);
+                  }
+                }}
+              />
             ) : screen === "settings" ? (
               <AccountSettings onSessionEnded={logout} />
             ) : screen === "wallet" ? (
@@ -323,7 +321,7 @@ export default function Home() {
                   </article>
                   <article>
                     <span>Աշխատանքային ռեժիմ</span>
-                    <strong className="small-strong">Ձեռքով խմբագրում</strong>
+                    <strong className="small-strong">Գրել և խմբագրել</strong>
                     <PenLine />
                   </article>
                 </div>

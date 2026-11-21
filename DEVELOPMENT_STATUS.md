@@ -1,78 +1,73 @@
 # Cognify — состояние разработки
 
-Обновлено: 21 ноября 2026. **Полное ТЗ остается в силе. Продукт пока не завершен.**
+Обновлено: 21 ноября 2026. **Полное ТЗ остается в силе. Основной сценарий реализован, весь продукт еще не завершен.**
 
-## Последнее уточнение пользователя
+## Уточнение пользователя
 
-Упростить только дизайн; не сокращать функциональность и не заменять ТЗ минимальным сайтом генерации. Coins остаются в основном сценарии. Убраны декоративный макет документа, градиент и движение кнопок; белый/синий интерфейс стал проще. Все рабочие разделы сохранены.
+Упростить только дизайн. Coins и остальные функции исходного ТЗ сохраняются. Интерфейс белый/синий, без декоративного макета документа, градиентов и движения кнопок.
 
-## Последнее продолжение: Coins
+## Последнее продолжение: генерация → редактор → DOCX
 
-- Миграции V8–V9: reserved balance, coin transactions/reservations, packages, pricing rules, payment records и usage. Изначальные пакет/тариф выключены.
-- WalletService: wallet-row lock, reserve/settle/release, partial refund, admin adjustment. Ledger и audit атомарны; повторный requestKey не проводит операцию повторно, измененный payload → 409. Нельзя потратить hold или вернуть больше списанного. Используются целые Coins и minor currency units.
-- Reserve/settle/release — внутренние server-side методы для будущего AI pipeline. Пользователь не может прислать произвольную цену/списание через REST. Пока генерации нет, автоматического списания за AI нет.
-- UI кошелька: доступно/амрագրված/всего, история, последние резервы/платежи, тестовые пакеты. Финансовая панель `/admin/finance`: пакеты, тарифы, поиск пользователя по email, корректировка с обязательной причиной, возврат Coins за операцию. Аудит в `/admin`.
-- PaymentProvider: DISABLED по умолчанию и TEST при явном dev + TEST_PAYMENTS_ENABLED=true. С prod или без dev включенный test provider блокирует запуск. TEST payment проверяется локальным backend, не frontend callback, и начисляется один раз. Банковские API не выдуманы и не подключены.
-- Frontend сохраняет request ID незавершенной финансовой операции через sessionStorage с хешем payload, чтобы повтор после сбоя/перезагрузки использовал тот же ключ. Запоздалый complete старой операции не удаляет новый pending key.
+- Flyway V10: persistent GenerationJob/GenerationStep, AI usage, разделы и текстовые снимки документов. V11 обновляет только неизмененные начальные тексты CMS.
+- AiProvider + OpenAI Chat Completions: backend-only key, HTTPS, 90s timeout, безопасные коды ошибок. AI_MODE=disabled по умолчанию. Без ключа нет поддельной генерации. Mock включается явно только в dev, запрещен с prod и маркируется в UI/DOCX.
+- Тема/тип/язык/объем/требования → план → редактирование/подтверждение → фоновые разделы → документ. Доступны пауза, продолжение, отмена и повтор после ошибки. Состояние хранится в PostgreSQL; 180s lease и проверка token отсекают запоздалые результаты. Просроченные задания подхватываются после перезапуска.
+- Coins: сервер проверяет подтвержденную цену, резервирует максимум; итоговый документ и settle фиксируются одной транзакцией. Расчетная страница = 350 слов, итог не выше оценки. Ошибка/отмена освобождает резерв; retry создает новый резерв и сохраняет готовые разделы. Idempotency key защищает повторный старт. Два активных задания на пользователя, три попытки этапа.
+- Редактор: отдельные разделы, добавление/удаление/порядок, изменение названия/типа, optimistic version общего документа. Текстовые снимки до изменения, просмотр последних десяти. Несохраненные изменения предупреждаются перед операциями, которые их заменяют.
+- DOCX через Apache POI: A4, Sylfaen 14, интервал 1.5, поля, титульная страница, список разделов, заголовки и номера страниц. Только владелец имеет доступ. PDF и профили вуза пока отсутствуют.
+- Добавлены Dockerfiles и compose.app.yaml для совместного запуска frontend/backend/PostgreSQL; инструкция и конфигурация AI в README. Полный Docker build еще не проверен.
 
-## Проверки текущего состояния
+## Проверки
 
-- Backend `mvn package`: **17 тестов**, 0 failures/errors, сборка JAR прошла. Из них WalletIntegrationTest — 8 сценариев.
-- Те же **8 wallet-сценариев отдельно прошли на PostgreSQL 17**, включая параллельные reserve, adjustment, settlement, refund, release-vs-settle и test payment.
-- Frontend `npm test`: **19 тестов**, все прошли. `npm run build` также прошел, включая `/admin/finance`.
-- HTTP `tests/coins_smoke.py` на dev + test provider: повторный параллельный платеж начисляет один раз, чужая история недоступна, корректировка доступна только ADMIN и требует причину, changed-payload replay отклоняется, quote/audit работают.
-- Повторно прошли `tests/api_smoke.py` и live BFF handler integration на backend с prod profile. Payment mode в prod проверен как disabled.
-- Миграция существующей тестовой PostgreSQL V7→V9 прошла; отдельная пустая финансовая test DB также получила все миграции.
-- Browser QA снова заблокирован: `relay could not open browser port 4173`. Визуальные изменения и новые UI-формы проверены сборкой, но не браузером.
-- Реальные AI API, банковский платеж/денежный возврат и SMTP delivery не проверялись: интеграции/реквизиты отсутствуют. Полный сценарий ТЗ с анализом образца и DOCX/PDF пока невозможен.
+- `mvn package`: **23 теста**, 0 failures/errors, JAR собран.
+- **6 новых integration-сценариев** генерации прошли и на PostgreSQL 17: полный цикл/редактор/DOCX/изоляция владельцев, idempotency/цена, pause/cancel с запоздалым ответом, failure/retry, expired-lease recovery, запрет mock в prod.
+- Ранее **8 финансовых сценариев** отдельно прошли на PostgreSQL, включая параллельные reserve/adjustment/settlement/refund/release/test payment.
+- `npm test`: **20 тестов**, все прошли; добавлена проверка бинарного скачивания после refresh JWT. `npm run build` прошел.
+- `tests/generation_smoke.py`: настоящий HTTP и фоновый worker на PostgreSQL, **явно MOCK AI и TEST payment**. Регистрация → пополнение 100 → резерв 30 → план → подтверждение → три раздела → итоговое списание 10 → редактор/история → DOCX. Итоговый баланс 90, резерв 0. Проверены повторный старт и запрет чужого скачивания.
+- Браузерная проверка не выполнена: повторный запуск Sites preview завершился `relay could not open browser port 4173: timed out waiting for relay readiness`.
+- Реальные OpenAI ответы/качество, банковские платежи и SMTP delivery не проверены. Наличие adapter не означает успешный внешний вызов.
 
-## Статус этапов
+## Статус полного ТЗ
 
 | Этап | Состояние |
 | --- | --- |
-| 1. Анализ/архитектура | Есть PROJECT_SPEC и исходный REQUEST.txt |
-| 2. Setup/DB | Next.js JS/JSX + Spring Boot 3.5.6/Java17 + PostgreSQL, Flyway V1–V9 |
-| 3. Авторизация | JWT/sessions/rotation/replay/revoke, HttpOnly BFF/CSRF, password change/reset, SMTP adapter; нет email verification/shared limiter/outbox |
-| 4. Landing/CMS | DB blocks, settings/SEO, публичные страницы, admin UI + audit; hero/intro фиксированы, logo только URL |
-| 5. Dashboard | Документы, available balance, wallet history, account security; уведомления/генерации еще отсутствуют |
-| 6. Wallet/Coins | Транзакционное ядро, каталог, quote, тестовый payment, UI и админка; AI integration/банковский checkout еще отсутствуют |
-| 7. Академические инструменты | Четыре типа ручных черновиков; AI-параметры/генерация не реализованы |
-| 8. Analyzer | Не реализован |
-| 9. Formatting profiles | Не реализованы |
-| 10. AI pipeline | Не реализован |
-| 11. Editor | Plain text CRUD и optimistic locking; без секций/версий/rich text/AI |
-| 12. DOCX/PDF export | Не реализован |
-| 13. Research/formatter/checker/citations | Не реализованы |
-| 14. Admin | CMS/audit и финансовая конфигурация/корректировки; нет полного управления пользователями/статистики/AI |
-| 15. Payments | Интерфейс + явно TEST provider; real vPOS, статус/reconciliation/webhook/денежные refunds не реализованы |
-| 16. QA | Описано выше; не полный E2E |
+| Архитектура/setup | Один репозиторий, Next.js JS/JSX, Spring Boot 3.5.6/Java17, PostgreSQL, Flyway V1–V11 |
+| Авторизация | JWT, persisted sessions, rotation/replay/revoke, HttpOnly BFF/CSRF, смена/сброс пароля, SMTP adapter |
+| Landing/CMS | Публичные блоки/страницы, branding/SEO/settings, admin, audit |
+| Dashboard | Документы, генерации, Coins, история, настройки безопасности |
+| Wallet/Coins | Ledger, резервы/списания/возвраты, каталог, quote, ADMIN adjustments, AI integration |
+| Академические инструменты | Четыре типа документов, hy/ru/en, параметры, план и генерация |
+| Analyzer | Не реализован |
+| Formatting profiles | Не реализованы |
+| AI pipeline | Durable jobs/leases, plan approval, sections, pause/resume/cancel/retry, usage; external AI еще не проверен |
+| Editor | Разделы, порядок, версии, plain text; без rich text/восстановления снимка/AI fragment rewrite |
+| Export | DOCX с фиксированным оформлением; нет PDF, профилей и динамического оглавления |
+| Research/checker/citations | Не реализованы |
+| Admin | CMS/audit, финансовая конфигурация/корректировки; нет полного управления пользователями/AI статистики |
+| Payments | Интерфейс + TEST provider; real vPOS/webhook/reconciliation/денежные refunds не реализованы |
+| QA | Unit/integration/PostgreSQL/HTTP; нет полного browser E2E и production review |
 
-## Следующий точный шаг
+## Следующие этапы
 
-Продолжить академические инструменты и основу поэтапной генерации (этапы 7/10), не менять рабочие auth/CMS/ledger APIs:
+1. Проверить реальный AI с backend-ключом: объем, качество армянского текста, ошибки/таймауты и стоимость. Пройти UI в браузере после восстановления preview.
+2. Реализовать загрузку и анализ DOCX/PDF образцов, уверенность анализа и редактируемые профили оформления.
+3. Применять профили к DOCX, добавить PDF и полноценное оглавление.
+4. Добавить источники/цитирования через документированные API, проверку и доработку фрагментов, остальную админку.
+5. Подключить реальный платежный провайдер после получения документации/реквизитов, outbox/reconciliation; завершить production deployment/security/SMTP проверки.
 
-1. Добавить AI-provider interface и реальный конфигурируемый adapter с backend-only key, timeout/error handling, usage logging. Без ключа — явная недоступность, не поддельный AI.
-2. Ввести GenerationJob/GenerationStep с durable state и lease: план → подтверждение → разделы → сборка. Выполнение асинхронное, состояние сохраняется в PostgreSQL, нужны pause/resume/cancel/retry и recovery после перезапуска.
-3. Перед стартом вычислять quote на backend, показывать цену пользователю, reserve через WalletService. После результата settle actual cost, при окончательной ошибке/отмене release. Сохранять reservationId/jobId; не списывать заново при retry.
-4. Простой армянский интерфейс: тема, тип, язык, объем, требования, затем план/прогресс/редактор. Все оставшиеся функции исходного ТЗ, включая анализ образца, оформление, экспорт и источники, сохраняются в очереди.
-5. Добавить тесты job recovery и согласованности job/reservation. Затем Analyzer/Formatting profiles и DOCX/PDF export.
+## Ограничения и инварианты
 
-## Ограничения и важные инварианты
-
-- Баланс total >= reserved >= 0; available=total-reserved. `/api/me.balance` теперь available.
-- Ledger и audit не имеют REST API редактирования/удаления. Ручные корректировки имеют reason и ADMIN check. Проверка пользователя в платежах всегда по JWT, сумма — по DB package snapshot.
-- Возврат Coins за потребленную операцию не является денежным банковским refund.
-- Тестовые Coins нужно держать в отдельной DB; переносить ее в production нельзя. PaymentProvider пока синхронный локальный TEST; для настоящего vPOS необходимы outbox, проверка подписи/status и reconciliation.
-- Held reservations пока не истекают автоматически: освобождение будет связано с lifecycle будущих durable jobs. Не создавать реальные holds до подключения job recovery.
-- В pricing/usage пока нет AI tokens/real provider costs; отображается расчет по заданным единицам и запись settled Coins.
-- Rate limit in-memory и видит адрес прокси; нужен distributed limiter/trusted proxy. Остались CSP/XSS review, cleanup tokens, security audit и SMTP delivery/outbox.
-- CMS текстовые настройки не имеют client-side version check; блоки/пакеты/тарифы имеют. Политика/условия предварительные, требуют данных владельца.
+- total >= reserved >= 0; available=total-reserved. Цены/владелец определяются backend; ledger/audit недоступны для редактирования через REST. Возврат Coins не является возвратом банковских денег.
+- При паузе/ожидании подтверждения hold сохраняется до отмены/продолжения. Автоматического удаления брошенных заданий нет.
+- Внешний AI-запрос при crash recovery может повториться: exactly-once относится к результату/Coins, не к расходам провайдера. Usage учитывает только успешно сохраненные ответы; не заменяет счет провайдера.
+- Запрошенные страницы приблизительны; физическая пагинация зависит от оформления. Нет автоматической проверки источников/цитат/оригинальности.
+- Тестовые Coins/mock держать в отдельной DB. Не переносить ее в production.
+- Rate limiter in-memory, нет email verification/shared limiter/outbox, нужны production TLS/backups/security review. Политика/условия предварительные.
 
 ## Окружение и продолжение
 
-Один репозиторий `/workspace/cognify`. README содержит startup, API, migration, SMTP, Coins и тестовые команды. `.env.example` не содержит реальных секретов. ZIP исходников обновляется в `work/cognify-source.zip` после commit.
+Репозиторий `/workspace/cognify`. Исходное ТЗ — REQUEST.txt. Архив после commit — `work/cognify-source.zip`, без секретов и зависимостей.
 
-Maven/JDK этого окружения в игнорируемом work/:
+JDK/Maven — в игнорируемом work/:
 
 ```bash
 JAVA_HOME=/workspace/cognify/work/jdk-17.0.21.1+2 \
@@ -83,6 +78,6 @@ MAVEN_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts \
 -f /workspace/cognify/cognify_backend/pom.xml package
 ```
 
-Для PostgreSQL wallet tests добавьте env `COGNIFY_POSTGRES_TEST_URL=jdbc:postgresql://localhost:5432/cognify_coins_test`, `COGNIFY_POSTGRES_TEST_PASSWORD` и `-Dtest=WalletIntegrationTest test`. Контейнер `cognify-postgres`. Исходная dev-БД `cognify` не менялась. `cognify_phase2_fresh` используется для prod-profile smoke без реальных платежей; `cognify_coins_test` — отдельная финансовая тестовая база с TEST credits и тестовыми администраторами. Последние HTTP тесты: 8080 prod profile, 8081 dev test payments. Процессы могут не сохраниться между сеансами.
+Контейнер `cognify-postgres`; отдельная БД `cognify_generation_test` для тестов генерации, `cognify_coins_test` для финансов, `cognify_phase2_fresh` для prod-profile smoke. Исходная `cognify` этими тестами не менялась. HTTP mock backend запускался на 8082; процессы могут не сохраниться между сеансами.
 
-Не перезаписывайте JAR, из которого запущен backend: для runtime берите отдельную копию в work/. Временные генераторы файлов в work/ были одноразовыми; повторный запуск может затереть изменения. Не коммитить work/, .env, DB dumps. Папка выдачи `/codex/...` в этой среде read-only; исходники и ZIP доступны в workspace.
+Не перезаписывать JAR работающего backend: использовать отдельную копию work/. Одноразовые генераторы файлов в work/ не запускать повторно. Не коммитить work/, .env или DB dumps. Папка выдачи /codex/... в этой среде read-only; исходники/ZIP находятся в workspace.

@@ -67,6 +67,17 @@ class CmsIntegrationTest {
     mvc.perform(get("/api/admin/audit").header("Authorization", user))
         .andExpect(status().isForbidden());
     long before = audit.count();
+    var blocks =
+        mapper.readTree(
+            mvc.perform(get("/api/admin/blocks").header("Authorization", admin))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString());
+    long version = -1;
+    for (var block : blocks)
+      if (block.get("key").asText().equals("faq")) version = block.get("version").asLong();
+    assertTrue(version >= 0);
     String payload =
         mapper.writeValueAsString(
             Map.of(
@@ -81,7 +92,7 @@ class CmsIntegrationTest {
                 "visible",
                 false,
                 "version",
-                0));
+                version));
     mvc.perform(
             put("/api/admin/blocks/faq")
                 .header("Authorization", user)
@@ -94,7 +105,7 @@ class CmsIntegrationTest {
                 .contentType("application/json")
                 .content(payload))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.version").value(1));
+        .andExpect(jsonPath("$.version").value(version + 1));
     var visible =
         mapper.readTree(
             mvc.perform(get("/api/public/blocks"))
@@ -114,7 +125,7 @@ class CmsIntegrationTest {
     String published =
         payload
             .replace("\"visible\":false", "\"visible\":true")
-            .replace("\"version\":0", "\"version\":1");
+            .replace("\"version\":" + version, "\"version\":" + (version + 1));
     mvc.perform(
             put("/api/admin/blocks/faq")
                 .header("Authorization", admin)
