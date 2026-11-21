@@ -981,3 +981,137 @@ footer > a:not(.brand) {
     font-size: 20px;
   }
 }
+/* Simpler presentation, same product scope and navigation. */
+.hero {
+  display: block;
+  background: #fff;
+  padding: 45px 6%;
+  border-bottom: 1px solid var(--line);
+}
+.hero-copy {
+  max-width: 780px;
+}
+.hero h1 {
+  font-size: 38px;
+  letter-spacing: -0.7px;
+}
+.hero .pill,
+.trust,
+.eyebrow,
+.aside-bottom {
+  display: none;
+}
+.section {
+  padding-top: 45px;
+  padding-bottom: 45px;
+}
+.tool-grid article,
+.stats article,
+.editor,
+.documents,
+.cta {
+  border-radius: 6px;
+  box-shadow: none;
+}
+.tool-icon {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  margin-bottom: 10px;
+}
+.how {
+  background: #fafbfd;
+}
+.cta {
+  background: #f6f8fc;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 30px;
+}
+.cta p {
+  color: var(--muted);
+}
+.cta > svg {
+  display: none;
+}
+.cta button {
+  background: var(--blue);
+  color: white;
+}
+button:hover,
+.button:hover {
+  transform: none;
+}
+.desk-head .eyebrow {
+  display: none;
+}
+.brand {
+  font-size: 25px;
+}
+h1 {
+  font-size: 34px;
+}
+h2 {
+  font-size: 25px;
+}
+.wallet-summary {
+  display: flex;
+  gap: 35px;
+  flex-wrap: wrap;
+  border-block: 1px solid var(--line);
+  margin: 20px 0;
+}
+.wallet-summary strong {
+  display: block;
+  font-size: 23px;
+  color: var(--ink);
+}
+.coin-packages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.coin-packages article {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin: 20px 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+th,
+td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  vertical-align: top;
+}
+td small {
+  display: block;
+  max-width: 280px;
+  overflow-wrap: anywhere;
+}
+.admin-page h1 {
+  font-size: 30px;
+}
+@media (max-width: 720px) {
+  .hero h1 {
+    font-size: 31px;
+  }
+  .hero {
+    padding: 30px 6%;
+  }
+  .wallet-summary {
+    gap: 18px;
+  }
+  .wallet-summary strong {
+    font-size: 20px;
+  }
+}

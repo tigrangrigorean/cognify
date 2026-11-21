@@ -15,6 +15,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { api, setToken, resumeSession } from "../services/api";
+import WalletPanel from "../components/WalletPanel";
 import PublicBlocks from "../components/PublicBlocks";
 import AccountSettings from "../components/AccountSettings";
 const kinds = {
@@ -236,6 +237,11 @@ export default function Home() {
                 Բովանդակության կառավարում
               </a>
             )}
+            {profile.role === "ADMIN" && (
+              <a className="button outline" href="/admin/finance">
+                Coins-ի կառավարում
+              </a>
+            )}
             <div className="aside-bottom">
               <ShieldCheck size={24} />
               <p>Ձեր փաստաթղթերը հասանելի են միայն ձեզ։</p>
@@ -301,14 +307,7 @@ export default function Home() {
             ) : screen === "settings" ? (
               <AccountSettings onSessionEnded={logout} />
             ) : screen === "wallet" ? (
-              <section className="editor">
-                <Coins size={36} />
-                <h2>{profile.balance} Coins</h2>
-                <p>Ձեր հասանելի մնացորդը</p>
-                <div className="notice">
-                  Գնումները դեռ միացված չեն։ Վճարումներ չեն ընդունվում։
-                </div>
-              </section>
+              <WalletPanel onUpdate={reload} />
             ) : (
               <>
                 <div className="stats">
@@ -419,68 +418,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            <div className="hero-visual">
-              <div className="visual-top">
-                <span className="mini-logo">
-                  <Layers size={18} />
-                  cognify
-                </span>
-                <span>Ձեր աշխատանքային տարածքը</span>
-              </div>
-              <div className="visual-body">
-                <div className="mock-sidebar">
-                  <Layers />
-                  <FileText />
-                  <BookOpen />
-                  <Coins />
-                </div>
-                <div className="paper">
-                  <div className="paper-tag">ԱՇԽԱՏԱՆՔԻ ԿԱՌՈՒՑՎԱԾՔ</div>
-                  <h3>
-                    Գաղափարները՝
-                    <br />
-                    հստակ կառուցվածքով
-                  </h3>
-                  <div className="paper-line long" />
-                  <div className="paper-line" />
-                  <div className="paper-divider" />
-                  {[
-                    "Ներածություն",
-                    "Հիմնական բաժիններ",
-                    "Եզրակացություն",
-                    "Գրականության ցանկ",
-                  ].map((x, i) => (
-                    <div className="outline-item" key={x}>
-                      <span>{String(i + 1).padStart(2, "0")}</span>
-                      {x}
-                      <Check size={14} />
-                    </div>
-                  ))}
-                  <div className="paper-lines">
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                </div>
-              </div>
-              <div className="floating-card">
-                <div className="file-icon">
-                  <ShieldCheck />
-                </div>
-                <div>
-                  <b>Ձեր պահանջներով</b>
-                  <span>Ձեր աշխատանքը, ձեր վերահսկողությունը</span>
-                </div>
-              </div>
-            </div>
           </section>
-          <div className="intro-strip">
-            <span>ՄԵԿ ՀԱՐԹԱԿ, ԱՎԵԼԻ ՀՍՏԱԿ ԱՇԽԱՏԱՆՔ</span>
-            <b>Գրեք։</b>
-            <b>Կառուցեք։</b>
-            <b>Խմբագրեք։</b>
-            <b>Պահպանեք։</b>
-          </div>
           <PublicBlocks
             blocks={blocks}
             settings={cms}

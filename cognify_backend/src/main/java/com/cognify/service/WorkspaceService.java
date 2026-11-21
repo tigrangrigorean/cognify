@@ -31,11 +31,9 @@ public class WorkspaceService {
   @Transactional(readOnly = true)
   public Profile profile(UUID owner) {
     var a = accounts.findById(owner).orElseThrow();
+    var wallet = wallets.findByOwnerId(owner).orElseThrow();
     return new Profile(
-        a.getName(),
-        a.getEmail(),
-        wallets.findByOwnerId(owner).orElseThrow().getBalance(),
-        a.getRole());
+        a.getName(), a.getEmail(), wallet.getBalance() - wallet.getReserved(), a.getRole());
   }
 
   @Transactional(readOnly = true)

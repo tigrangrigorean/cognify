@@ -125,6 +125,7 @@ export default function AdminCms() {
           Cognify
         </a>
         <h2>Բովանդակության կառավարում</h2>
+        <a href="/admin/finance">Coins-ի կառավարում</a>
       </header>
       <div className="section">
         <p>

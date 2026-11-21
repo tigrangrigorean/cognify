@@ -1,8 +1,11 @@
 # Cognify architecture and requirements
 Requested product: Armenian academic document SaaS, no subscriptions, Next.js App Router JavaScript frontend and Spring Boot 3.5.6 Java 17 backend, PostgreSQL.
 
+## Confirmed design change — 21 November 2026
+The complete original functional scope is retained, including Coins and payments. Only visual presentation is simplified: plain white/blue layout, fewer decorative elements, no mock document illustration or button motion. No functional modules are canceled or replaced by a minimal generator-only product.
+
 ## Architecture
-Browser → Next.js auth BFF (HttpOnly cookie, Origin/CSRF checks) or same-origin Bearer /api proxy → Spring Security JWT + persisted session validation → controllers → transactional services → JPA → PostgreSQL. Passwords use BCrypt. Refresh tokens are opaque, hashed at rest, rotated and bound to persisted user sessions. Account row locks serialize rotation and revocation; replay revokes the session. Password reset uses hashed, expiring one-time tokens and a real configurable SMTP adapter. Flyway V1–V7 manage the schema and Hibernate validates it by default. Documents belong to their creator. API uses DTOs. Backend owns all credentials and financial decisions.
+Browser → Next.js auth BFF (HttpOnly cookie, Origin/CSRF checks) or same-origin Bearer /api proxy → Spring Security JWT + persisted session validation → controllers → transactional services → JPA → PostgreSQL. Passwords use BCrypt. Refresh tokens are opaque, hashed at rest, rotated and bound to persisted user sessions. Account row locks serialize rotation and revocation; replay revokes the session. Password reset uses hashed, expiring one-time tokens and a real configurable SMTP adapter. Flyway V1–V9 manage the schema and Hibernate validates it by default. Documents belong to their creator. API uses DTOs. Backend owns all credentials and financial decisions.
 
 ## Delivery stages
 1. Repository analysis and architecture
@@ -29,3 +32,6 @@ The original complete request is preserved in REQUEST.txt.
 
 ## CMS implementation checkpoint
 CmsBlock stores ordered, visible, versioned public blocks with validated JSON item lists. CmsContent stores branding, hero, button, SEO and information-page strings. CmsService saves changes and AuditLog in one transaction; controllers expose DTOs only. ADMIN-only UI `/admin` uses protected APIs. Public dynamic pages fetch backend data without caching. Fixed hero/intro layout and absence of custom block types/file-upload are explicit remaining limitations. Audit covers CMS only at this stage.
+
+## Coin accounting implementation
+Wallet.balance is total Coins; wallet.reserved is the held part; available = balance - reserved. Every mutation takes a pessimistic wallet-row lock. CoinTransaction and audit log commit atomically with wallet/reservation changes. Request keys are scoped to owner and operation; a replay with changed parameters is rejected. Reserve/settle/release are server-only job methods, never endpoints accepting a browser price. Refunds cannot exceed settled cost. Package/price configuration uses optimistic versions. Payment snapshots freeze purchased quantity and amount. Real payment processing remains disabled; TEST provider needs explicit dev mode and a dedicated test database. Production must use a real documented vPOS adapter, authenticated notifications, reconciliation and an outbox before any real charge.

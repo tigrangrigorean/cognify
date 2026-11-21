@@ -18,5 +18,6 @@ public class Wallet {
   private UUID ownerId;
 
   private long balance = 0;
+  private long reserved = 0;
   @Version private long version;
 }
